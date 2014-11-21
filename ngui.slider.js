@@ -2,8 +2,8 @@
 
   var module = angular.module('ngui.slider', []);
 
-  module.directive('uiSlider', [ '$interval',
-    function($interval) {
+  module.directive('uiSlider', ['$timeout',
+    function($timeout) {
 
       return  {
         restrict: 'A',
@@ -12,17 +12,21 @@
 
           var lastSwitched = 0;
           var ctrl = this;
+          var timeoutId = null;
 
           ctrl.slides = [];
+          ctrl.timeout = 0;
 
           ctrl.activate = function(slide) {
             if (Date.now() - lastSwitched < 500)
               return;
+            console.log('Activating %s', slide.index);
             ctrl.slides.forEach(function(slide) {
               slide.active = false;
             });
             slide.active = true;
             lastSwitched = Date.now();
+            ctrl.start();
           };
 
           ctrl.add = function(slide) {
@@ -55,16 +59,25 @@
             ctrl.activate(ctrl.slides[ctrl.getPrevIndex()]);
           };
 
+          ctrl.start = function() {
+            if (timeoutId) {
+              $timeout.cancel(timeoutId);
+              timeoutId = null;
+            }
+            if (ctrl.timeout) {
+              timeoutId = $timeout(function() {
+                ctrl.next();
+              }, ctrl.timeout);
+            }
+          };
+
         },
 
         controllerAs: 'slider',
 
         link: function($scope, $element, $attrs) {
-          var timeout = parseInt($attrs.uiSlider) || 0;
-          if (timeout)
-            $interval(function() {
-              $scope.slider.next();
-            }, timeout);
+          $scope.slider.timeout = parseInt($attrs.uiSlider) || 0;
+          $scope.slider.start();
         }
       };
 
@@ -82,6 +95,9 @@
       link: function($scope, $element, $attrs, slider) {
         $scope.index = slider.slides.length;
         slider.add($scope);
+        $scope.activate = function() {
+          slider.activate($scope);
+        };
         $scope.classes = function() {
           return {
             active: $scope.active,
