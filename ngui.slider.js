@@ -8,6 +8,8 @@
       return  {
         restrict: 'A',
 
+        scope: true,
+
         controller: function() {
 
           var lastSwitched = 0;
